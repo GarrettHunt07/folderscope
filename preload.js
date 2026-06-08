@@ -22,5 +22,6 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.removeListener('print-file-progress', listener);
     };
   },
-  readFileContent: (path) => ipcRenderer.invoke('read-file-content', path)
+  readFileContent: (path) => ipcRenderer.invoke('read-file-content', path),
+  openPath: (path) => ipcRenderer.invoke('open-path', path)
 });

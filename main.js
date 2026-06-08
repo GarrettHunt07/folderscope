@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, clipboard, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -6,10 +6,16 @@ let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1100,
-    height: 800,
-    minWidth: 800,
-    minHeight: 600,
+    width: 1200,
+    height: 850,
+    minWidth: 900,
+    minHeight: 650,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#0f172a',
+      symbolColor: '#94a3b8',
+      height: 45
+    },
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -21,14 +27,14 @@ function createWindow() {
     },
     title: 'FolderScope',
     icon: path.join(__dirname, 'icon.ico'),
-    backgroundColor: '#09090b', // Matches dark theme background to avoid white flicker
+    backgroundColor: '#090b11', // Matches deep dark theme background to avoid white flicker
     show: false, // Show window when it is ready-to-show
   });
 
   mainWindow.loadFile('index.html');
 
   // Open the DevTools if needed (optional)
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
@@ -287,3 +293,15 @@ ipcMain.handle('read-file-content', async (event, filePath) => {
     throw err;
   }
 });
+
+// IPC handler to open file in external default program
+ipcMain.handle('open-path', async (event, filePath) => {
+  try {
+    await shell.openPath(filePath);
+    return { success: true };
+  } catch (err) {
+    console.error('Failed to open path:', err);
+    return { success: false, error: err.message };
+  }
+});
+

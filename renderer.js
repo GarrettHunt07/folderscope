@@ -78,8 +78,60 @@ const largeFilesContainer = document.getElementById('large-files-container');
 const previewPane = document.getElementById('preview-pane');
 const previewIframe = document.getElementById('preview-iframe');
 const previewText = document.getElementById('preview-text');
-const previewPlaceholder = previewPane.querySelector('.preview-placeholder');
+const previewPlaceholder = document.getElementById('preview-placeholder');
 const sidebarPrintDocsBtn = document.getElementById('sidebar-print-docs-btn');
+
+// New Workspace elements
+const workspaceGrid = document.getElementById('workspace-grid');
+const headerNewBtn = document.getElementById('header-new-btn');
+const headerOpenBtn = document.getElementById('header-open-btn');
+const headerSettingsBtn = document.getElementById('header-settings-btn');
+const previewFilename = document.getElementById('preview-filename');
+const previewMetadata = document.getElementById('preview-metadata');
+const previewMetaSize = document.getElementById('preview-meta-size');
+const previewMetaDate = document.getElementById('preview-meta-date');
+const previewActions = document.getElementById('preview-actions');
+const previewOpenBtn = document.getElementById('preview-open-btn');
+const previewShareBtn = document.getElementById('preview-share-btn');
+const previewPrintBtn = document.getElementById('preview-print-btn');
+const printQueueSummary = document.getElementById('print-queue-summary');
+
+// Global Workspace state variables
+let activeDirectoryPath = '';
+let lastSelectedFilePath = '';
+
+// Helper function to format dates
+function formatDate(mtime) {
+  if (!mtime) return '-';
+  const date = new Date(mtime);
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// File icon selector helper
+function getFileIconSVG(ext) {
+  const e = (ext || '').toLowerCase();
+  if (e === '.pdf') {
+    return `<svg class="file-icon-svg pdf" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:#ef4444;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444"></path><polyline points="14 2 14 8 20 8" stroke="#ef4444"></polyline></svg>`;
+  }
+  if (e === '.html' || e === '.htm') {
+    return `<svg class="file-icon-svg html" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:#10b981;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="rgba(16, 185, 129, 0.1)" stroke="#10b981"></path><polyline points="14 2 14 8 20 8" stroke="#10b981"></polyline></svg>`;
+  }
+  if (['.doc', '.docx'].includes(e)) {
+    return `<svg class="file-icon-svg doc" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="rgba(59, 130, 246, 0.1)" stroke="#3b82f6"></path><polyline points="14 2 14 8 20 8" stroke="#3b82f6"></polyline></svg>`;
+  }
+  if (['.txt', '.md', '.log'].includes(e)) {
+    return `<svg class="file-icon-svg txt" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:#6b7280;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="rgba(107, 114, 128, 0.1)" stroke="#6b7280"></path><polyline points="14 2 14 8 20 8" stroke="#6b7280"></polyline></svg>`;
+  }
+  return `<svg class="file-icon-svg default" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:#94a3b8;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#94a3b8"></path><polyline points="14 2 14 8 20 8" stroke="#94a3b8"></polyline></svg>`;
+}
+
+// Reconstruct path helper
+function getNodePath(node, name) {
+  if (node.fileData && node.fileData.path) {
+    return node.fileData.path;
+  }
+  return selectedDirectory ? `${selectedDirectory}/${node.relativePath || name}`.replace(/\\/g, '/') : name;
+}
 
 // Initialize events
 document.addEventListener('DOMContentLoaded', () => {
@@ -99,8 +151,14 @@ function setupEventListeners() {
     e.stopPropagation();
   });
 
-  // Make entire dropzone clickable to select folder
+  // Make entire dropzone and header buttons clickable to select folder
   dropzone.addEventListener('click', handleSelectFolder);
+  headerNewBtn.addEventListener('click', handleSelectFolder);
+  headerOpenBtn.addEventListener('click', handleSelectFolder);
+  
+  headerSettingsBtn.addEventListener('click', () => {
+    alert("FolderScope Settings:\n\n• Processing Mode: 100% Offline\n• Spooling Engine: Native PDFium Sequential Print\n• Active Printer: " + (printerSelect.value || 'System Default') + "\n• Version: v1.0.0");
+  });
   
   // Drag and Drop events on dropzone
   dropzone.addEventListener('dragenter', (e) => {
@@ -330,8 +388,13 @@ async function startScanning(dirPath) {
     // Update main status
     showStatus(`Scanned ${filesCount} files in ${duration}s`, 'active');
     
+    // Set active path for explorer view
+    activeDirectoryPath = dirPath;
+    
     // Show views
     scanningState.classList.add('hidden');
+    emptyState.classList.add('hidden'); // Hide welcome screen
+    workspaceGrid.classList.remove('hidden'); // Show workspace grid
     exportPanel.classList.remove('hidden');
     analysisRow.classList.remove('hidden');
     searchInput.disabled = false;
@@ -380,20 +443,14 @@ function switchTab(tab) {
 function updateViews() {
   if (scannedFiles.length === 0) return;
   
-  paneTree.classList.add('hidden');
-  paneList.classList.add('hidden');
-  paneQueue.classList.add('hidden');
+  // Keep all views visible simultaneously in the unified layout
+  paneTree.classList.remove('hidden');
+  paneList.classList.remove('hidden');
+  paneQueue.classList.remove('hidden');
   
-  if (activeTab === 'tree') {
-    paneTree.classList.remove('hidden');
-    renderTree();
-  } else if (activeTab === 'list') {
-    paneList.classList.remove('hidden');
-    renderList();
-  } else if (activeTab === 'queue') {
-    paneQueue.classList.remove('hidden');
-    renderPrintQueue();
-  }
+  renderTree();
+  renderList();
+  renderPrintQueue();
 }
 
 // TREE VIEW LOGIC
@@ -564,6 +621,16 @@ function createTreeNodeDOM(node, name) {
       nodeEl.classList.add('active-file');
       showFilePreview(node.fileData);
     });
+  } else if (node.isDirectory) {
+    if (!node.children || node.children.size === 0) {
+      nodeEl.addEventListener('click', (e) => {
+        const dirPath = node.fileData ? node.fileData.path : getNodePath(node, name);
+        if (dirPath) {
+          activeDirectoryPath = dirPath;
+          renderList();
+        }
+      });
+    }
   }
   
   item.appendChild(nodeEl);
@@ -587,7 +654,7 @@ function createTreeNodeDOM(node, name) {
     
     item.appendChild(childrenContainer);
     
-    // Expand/Collapse Click
+    // Expand/Collapse Click & Navigate
     nodeEl.addEventListener('click', (e) => {
       const isHidden = childrenContainer.classList.contains('hidden') || childrenContainer.style.display === 'none';
       if (isHidden) {
@@ -597,6 +664,11 @@ function createTreeNodeDOM(node, name) {
         childrenContainer.style.display = 'none';
         arrow.style.transform = 'rotate(0deg)';
       }
+      const dirPath = node.fileData ? node.fileData.path : getNodePath(node, name);
+      if (dirPath) {
+        activeDirectoryPath = dirPath;
+        renderList();
+      }
     });
   }
   
@@ -604,23 +676,42 @@ function createTreeNodeDOM(node, name) {
 }
 
 // FLAT LIST VIEW LOGIC
+function getParentPath(filePath) {
+  const parts = filePath.replace(/\\/g, '/').split('/');
+  parts.pop();
+  return parts.join('/');
+}
+
+// Flat list view logic rewritten for folder navigation
 function renderList() {
   listContainer.innerHTML = '';
   
-  // Filter out directories, we only show files in the flat list
-  let files = scannedFiles.filter(f => !f.isDirectory);
+  if (!activeDirectoryPath && selectedDirectory) {
+    activeDirectoryPath = selectedDirectory;
+  }
   
-  // Search query filter
+  if (!activeDirectoryPath) return;
+  
+  const normalizedActive = activeDirectoryPath.replace(/\\/g, '/');
+  const normalizedRoot = selectedDirectory.replace(/\\/g, '/');
+  
+  // Get direct children of active directory
+  const directChildren = scannedFiles.filter(item => {
+    if (item.path.replace(/\\/g, '/') === normalizedActive) return false;
+    const parent = getParentPath(item.path);
+    return parent === normalizedActive;
+  });
+  
+  // Create folders section
+  const folders = directChildren.filter(item => item.isDirectory);
+  
+  // Create files section
+  let files = directChildren.filter(item => !item.isDirectory);
   if (searchQuery) {
-    files = files.filter(f => f.name.toLowerCase().includes(searchQuery) || f.relativePath.toLowerCase().includes(searchQuery));
+    files = files.filter(f => f.name.toLowerCase().includes(searchQuery));
   }
   
-  if (files.length === 0) {
-    listContainer.innerHTML = '<div class="empty-state">No files match your search query.</div>';
-    return;
-  }
-  
-  // Sort
+  // Sort files
   files.sort((a, b) => {
     switch (sortBy) {
       case 'name-asc':
@@ -638,69 +729,123 @@ function renderList() {
     }
   });
   
-  // Rendering optimization: render in chunks if there are thousands of rows,
-  // or restrict container limits with a warning to keep DOM light and smooth.
-  const LIMIT = 1000;
-  const renderLimit = Math.min(files.length, LIMIT);
+  // Build dynamic content
+  const foldersTitle = document.createElement('div');
+  foldersTitle.className = 'list-section-title';
+  foldersTitle.textContent = 'Folders';
+  listContainer.appendChild(foldersTitle);
   
-  for (let i = 0; i < renderLimit; i++) {
-    const file = files[i];
-    const row = document.createElement('div');
-    row.className = 'list-row';
-    
-    const nameWrapper = document.createElement('div');
-    nameWrapper.className = 'list-row-name-wrapper';
-    
-    const icon = document.createElement('span');
-    icon.className = 'tree-node-icon file';
-    icon.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-    nameWrapper.appendChild(icon);
-    
-    const name = document.createElement('span');
-    name.className = 'list-row-name';
-    name.textContent = file.name;
-    nameWrapper.appendChild(name);
-    
-    const path = document.createElement('span');
-    path.className = 'list-row-path';
-    path.textContent = file.relativePath;
-    path.title = file.path;
-    nameWrapper.appendChild(path);
-    
-    row.appendChild(nameWrapper);
-    
-    const type = document.createElement('span');
-    type.className = 'list-row-type';
-    type.textContent = file.ext ? file.ext.substring(1) : 'unknown';
-    row.appendChild(type);
-    
-    const size = document.createElement('span');
-    size.className = 'list-row-size';
-    size.textContent = formatBytes(file.size);
-    row.appendChild(size);
-    
-    // Bind click listener for file preview
-    row.addEventListener('click', (e) => {
-      document.querySelectorAll('.active-file').forEach(el => el.classList.remove('active-file'));
-      row.classList.add('active-file');
-      showFilePreview(file);
+  const foldersGrid = document.createElement('div');
+  foldersGrid.className = 'folders-grid';
+  listContainer.appendChild(foldersGrid);
+  
+  // Handle UP folder if not in root
+  if (normalizedActive !== normalizedRoot) {
+    const upItem = document.createElement('div');
+    upItem.className = 'folder-card folder-up-card';
+    upItem.innerHTML = `
+      <svg class="folder-card-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      <span class="folder-card-name">.. (Up)</span>
+    `;
+    upItem.addEventListener('click', () => {
+      activeDirectoryPath = getParentPath(activeDirectoryPath);
+      renderList();
     });
-    
-    listContainer.appendChild(row);
+    foldersGrid.appendChild(upItem);
   }
   
-  // Show limit notification if capped
-  if (files.length > LIMIT) {
-    const cappedNotice = document.createElement('div');
-    cappedNotice.className = 'empty-state';
-    cappedNotice.style.padding = '16px';
-    cappedNotice.style.borderTop = '1px solid var(--border-color)';
-    cappedNotice.innerHTML = `Showing first ${LIMIT} of ${formatNumber(files.length)} matching files. Please refine search or use Export options for the full list.`;
-    listContainer.appendChild(cappedNotice);
+  if (folders.length === 0) {
+    if (normalizedActive === normalizedRoot) {
+      const emptyMsg = document.createElement('div');
+      emptyMsg.className = 'empty-state-small';
+      emptyMsg.textContent = 'No folders';
+      foldersGrid.appendChild(emptyMsg);
+    }
+  } else {
+    folders.forEach(folder => {
+      const folderItem = document.createElement('div');
+      folderItem.className = 'folder-card';
+      folderItem.innerHTML = `
+        <svg class="folder-card-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="rgba(0, 242, 254, 0.15)" stroke="#00f2fe"></path>
+        </svg>
+        <span class="folder-card-name">${folder.name}</span>
+      `;
+      folderItem.addEventListener('click', () => {
+        activeDirectoryPath = folder.path;
+        renderList();
+      });
+      foldersGrid.appendChild(folderItem);
+    });
+  }
+  
+  const filesTitle = document.createElement('div');
+  filesTitle.className = 'list-section-title';
+  filesTitle.textContent = 'Files';
+  listContainer.appendChild(filesTitle);
+  
+  const filesTable = document.createElement('div');
+  filesTable.className = 'files-table';
+  listContainer.appendChild(filesTable);
+  
+  if (files.length === 0) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.className = 'empty-state-small';
+    emptyMsg.textContent = 'No files';
+    filesTable.appendChild(emptyMsg);
+  } else {
+    files.forEach(file => {
+      const isPrintableFile = isPrintable(file);
+      const isChecked = checkedFilePaths.has(file.path);
+      
+      const fileRow = document.createElement('div');
+      fileRow.className = 'file-row-item';
+      if (lastSelectedFilePath === file.path) {
+        fileRow.classList.add('active-file');
+      }
+      
+      fileRow.innerHTML = `
+        <div class="file-col-left">
+          ${isPrintableFile ? `<input type="checkbox" class="file-item-checkbox" ${isChecked ? 'checked' : ''}>` : '<span class="checkbox-spacer"></span>'}
+          <span class="file-item-icon">${getFileIconSVG(file.ext)}</span>
+          <span class="file-item-name">${file.name}</span>
+        </div>
+        <div class="file-col-right">
+          <span class="file-item-size">${formatBytes(file.size)}</span>
+          <span class="file-item-date">${formatDate(file.mtime)}</span>
+        </div>
+      `;
+      
+      // Select for preview
+      fileRow.addEventListener('click', (e) => {
+        if (e.target.type === 'checkbox') return;
+        document.querySelectorAll('.file-row-item').forEach(el => el.classList.remove('active-file'));
+        fileRow.classList.add('active-file');
+        lastSelectedFilePath = file.path;
+        showFilePreview(file);
+      });
+      
+      // Checkbox event
+      if (isPrintableFile) {
+        const checkbox = fileRow.querySelector('.file-item-checkbox');
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            checkedFilePaths.add(file.path);
+          } else {
+            checkedFilePaths.delete(file.path);
+          }
+          updatePrintButtonState();
+          renderPrintQueue();
+        });
+      }
+      
+      filesTable.appendChild(fileRow);
+    });
   }
 }
 
-// ADVANCED ANALYSIS PANEL GENERATORS
 function calculateTopExtensions() {
   extensionsChartContainer.innerHTML = '';
   
@@ -1102,52 +1247,55 @@ function renderPrintQueue() {
     // Name column
     const nameCol = document.createElement('span');
     nameCol.className = 'col-name-q';
-    
-    const ext = (file.ext || '').toLowerCase();
-    let iconSVG = '';
-    if (ext === '.pdf') {
-      iconSVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:#ef4444; margin-right:8px; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="rgba(239,68,68,0.15)"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`;
-    } else if (ext === '.html' || ext === '.htm') {
-      iconSVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:#f97316; margin-right:8px; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="rgba(249,115,22,0.15)"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="8 17 12 13 16 17"></polyline></svg>`;
-    } else {
-      iconSVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:#2dd4bf; margin-right:8px; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="rgba(45,212,191,0.15)"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>`;
-    }
-    
-    nameCol.innerHTML = `${iconSVG}${file.name}`;
+    nameCol.innerHTML = `${getFileIconSVG(file.ext)} <span style="margin-left: 8px; vertical-align: middle;">${file.name}</span>`;
     row.appendChild(nameCol);
     
-    // Path column (shows parent folder relative path)
-    const pathCol = document.createElement('span');
-    pathCol.className = 'col-path-q';
-    pathCol.textContent = file.relativePath.substring(0, file.relativePath.lastIndexOf('/')) || '/';
-    row.appendChild(pathCol);
+    // Progress Bar column
+    const progressCol = document.createElement('span');
+    progressCol.className = 'col-progress-q';
     
-    // Size column
-    const sizeCol = document.createElement('span');
-    sizeCol.className = 'col-size-q';
-    sizeCol.textContent = formatBytes(file.size);
-    row.appendChild(sizeCol);
+    const barContainer = document.createElement('div');
+    barContainer.className = 'queue-progress-bar-container';
+    
+    const barFill = document.createElement('div');
+    barFill.className = 'queue-progress-bar-fill';
+    barFill.id = `print-progress-bar-${actualIndex}`;
+    
+    // Set initial width based on status
+    const currentStatus = filePrintStatuses[file.path] || 'Pending';
+    const statusLower = currentStatus.toLowerCase();
+    if (statusLower.includes('success')) {
+      barFill.className = 'queue-progress-bar-fill success';
+      barFill.style.width = '100%';
+    } else if (statusLower.includes('failed')) {
+      barFill.className = 'queue-progress-bar-fill failed';
+      barFill.style.width = '100%';
+    } else if (statusLower.includes('printing')) {
+      barFill.className = 'queue-progress-bar-fill active';
+      barFill.style.width = '50%';
+    } else {
+      barFill.style.width = '0%';
+    }
+    
+    barContainer.appendChild(barFill);
+    progressCol.appendChild(barContainer);
+    row.appendChild(progressCol);
     
     // Status column
     const statusCol = document.createElement('span');
-    const currentStatus = filePrintStatuses[file.path] || 'Pending';
     statusCol.textContent = currentStatus;
-    
-    // Set appropriate class based on status
+    statusCol.id = `print-status-${actualIndex}`;
     statusCol.className = 'col-status-q';
-    const statusLower = currentStatus.toLowerCase();
+    
     if (statusLower.includes('success')) {
       statusCol.className = 'col-status-q success';
     } else if (statusLower.includes('failed')) {
       statusCol.className = 'col-status-q failed';
     } else if (statusLower.includes('printing')) {
       statusCol.className = 'col-status-q printing';
-    } else if (statusLower.includes('waiting')) {
-      statusCol.className = 'col-status-q pending';
     } else {
       statusCol.className = 'col-status-q pending';
     }
-    statusCol.id = `print-status-${actualIndex}`;
     row.appendChild(statusCol);
     
     // Bind click listener for file preview
@@ -1174,10 +1322,19 @@ function renderPrintQueue() {
 function updatePrintButtonState() {
   const checkedCount = checkedFilePaths.size;
   startPrintBtn.disabled = checkedCount === 0;
+  
+  if (printQueueSummary) {
+    if (checkedCount > 0) {
+      printQueueSummary.textContent = `${checkedCount} documents queued`;
+    } else {
+      printQueueSummary.textContent = '0 documents queued';
+    }
+  }
+  
   if (checkedCount > 0) {
-    startPrintBtn.textContent = `Print Selected Documents (${checkedCount})`;
+    startPrintBtn.textContent = `Print Selected (${checkedCount})`;
   } else {
-    startPrintBtn.textContent = 'Print Selected Documents';
+    startPrintBtn.textContent = 'Print Selected';
   }
 }
 
@@ -1207,6 +1364,12 @@ async function handlePrintSelectedDocuments() {
     if (statusEl) {
       statusEl.textContent = filePrintStatuses[file.path];
       statusEl.className = 'col-status-q pending';
+    }
+    
+    const barFill = document.getElementById(`print-progress-bar-${index}`);
+    if (barFill) {
+      barFill.style.width = '0%';
+      barFill.className = 'queue-progress-bar-fill';
     }
   });
 
@@ -1240,6 +1403,8 @@ if (window.api && window.api.onPrintProgress) {
     const index = printableFiles.findIndex(f => f.path === progress.filePath);
     if (index !== -1) {
       const statusEl = document.getElementById(`print-status-${index}`);
+      const barFill = document.getElementById(`print-progress-bar-${index}`);
+      
       if (statusEl) {
         statusEl.textContent = progress.status;
         statusEl.className = 'col-status-q'; // Reset class
@@ -1247,13 +1412,29 @@ if (window.api && window.api.onPrintProgress) {
         const statusText = progress.status.toLowerCase();
         if (statusText.includes('success')) {
           statusEl.className = 'col-status-q success';
+          if (barFill) {
+            barFill.className = 'queue-progress-bar-fill success';
+            barFill.style.width = '100%';
+          }
         } else if (statusText.includes('failed')) {
           statusEl.className = 'col-status-q failed';
-          statusEl.title = progress.status; // Show full error on hover
+          statusEl.title = progress.status;
+          if (barFill) {
+            barFill.className = 'queue-progress-bar-fill failed';
+            barFill.style.width = '100%';
+          }
         } else if (statusText.includes('printing')) {
           statusEl.className = 'col-status-q printing';
+          if (barFill) {
+            barFill.className = 'queue-progress-bar-fill active';
+            barFill.style.width = '50%';
+          }
         } else {
           statusEl.className = 'col-status-q pending';
+          if (barFill) {
+            barFill.className = 'queue-progress-bar-fill';
+            barFill.style.width = '0%';
+          }
         }
       }
     }
@@ -1272,6 +1453,63 @@ async function showFilePreview(file) {
   
   // Normalize path for iframe (replace backslashes, add file:// scheme)
   const fileUrl = `file://${filePath.replace(/\\/g, '/')}`;
+
+  // Update details
+  previewFilename.textContent = file.name;
+  previewMetaSize.textContent = `Size: ${formatBytes(file.size)}`;
+  previewMetaDate.textContent = `Modified: ${formatDate(file.mtime)}`;
+  
+  previewMetadata.classList.remove('hidden');
+  previewActions.classList.remove('hidden');
+  
+  // Enable buttons
+  previewOpenBtn.disabled = false;
+  previewShareBtn.disabled = false;
+  
+  const isPrintableFile = isPrintable(file);
+  previewPrintBtn.disabled = !isPrintableFile;
+  
+  // Remove previous listeners by cloning
+  const openClone = previewOpenBtn.cloneNode(true);
+  const shareClone = previewShareBtn.cloneNode(true);
+  const printClone = previewPrintBtn.cloneNode(true);
+  
+  previewOpenBtn.parentNode.replaceChild(openClone, previewOpenBtn);
+  previewShareBtn.parentNode.replaceChild(shareClone, previewShareBtn);
+  previewPrintBtn.parentNode.replaceChild(printClone, previewPrintBtn);
+  
+  // Bind new listeners
+  const newOpenBtn = document.getElementById('preview-open-btn');
+  const newShareBtn = document.getElementById('preview-share-btn');
+  const newPrintBtn = document.getElementById('preview-print-btn');
+  
+  newOpenBtn.addEventListener('click', async () => {
+    if (window.api && window.api.openPath) {
+      await window.api.openPath(filePath);
+    }
+  });
+  
+  newShareBtn.addEventListener('click', () => {
+    if (window.api && window.api.copyToClipboard) {
+      window.api.copyToClipboard(filePath);
+      showStatus('File path copied to clipboard!', 'active');
+    }
+  });
+  
+  newPrintBtn.addEventListener('click', async () => {
+    if (isPrintableFile) {
+      newPrintBtn.disabled = true;
+      showStatus(`Spooling print job for ${file.name}...`, 'busy');
+      try {
+        await window.api.printFiles({ filePaths: [filePath], printerName: printerSelect.value });
+        showStatus('Print job sent successfully!', 'active');
+      } catch (err) {
+        showStatus(`Printing failed: ${err.message}`, 'error');
+      } finally {
+        newPrintBtn.disabled = false;
+      }
+    }
+  });
 
   try {
     if (ext === '.pdf') {
@@ -1296,6 +1534,12 @@ async function showFilePreview(file) {
       
       const content = await window.api.readFileContent(filePath);
       previewText.textContent = content;
+    } else if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico'].includes(ext)) {
+      // Image Preview (supported natively by iframe in Electron!)
+      previewPlaceholder.classList.add('hidden');
+      previewText.classList.add('hidden');
+      previewIframe.classList.remove('hidden');
+      previewIframe.src = fileUrl;
     } else {
       // Unsupported format placeholder fallback
       previewIframe.classList.add('hidden');
@@ -1304,7 +1548,7 @@ async function showFilePreview(file) {
       previewPlaceholder.classList.remove('hidden');
       
       previewPlaceholder.innerHTML = `
-        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-muted);">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-dark);">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
           <line x1="12" y1="9" x2="12" y2="13"></line>
           <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -1322,6 +1566,10 @@ async function showFilePreview(file) {
 }
 
 function clearFilePreview() {
+  previewFilename.textContent = 'Select a file to preview';
+  previewMetadata.classList.add('hidden');
+  previewActions.classList.add('hidden');
+  
   previewIframe.classList.add('hidden');
   previewIframe.src = '';
   previewText.classList.add('hidden');

@@ -3,316 +3,281 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Security Policy (Electron Best Practices) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self';">
   <title>FolderScope</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      alert("GLOBAL ERROR:\n" + message + "\nSource: " + source + "\nLine: " + lineno);
+      return false;
+    };
+  </script>
 </head>
 <body>
-  <div class="app-container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="logo-area">
-        <svg class="logo-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          <path d="M12 11v6"></path>
-          <path d="M9 14h6"></path>
-        </svg>
-        <div class="logo-text">
-          <h1>FolderScope</h1>
-          <span class="logo-subtitle">File Analyzer</span>
-        </div>
+  <!-- Frameless Titlebar Header -->
+  <header class="titlebar-header">
+    <div class="titlebar-drag-region"></div>
+    <div class="titlebar-logo">
+      <svg class="logo-icon-svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="rgba(0, 242, 254, 0.1)" stroke="#00f2fe"></path>
+        <circle cx="12" cy="13" r="3" stroke="#00f2fe"></circle>
+        <path d="M16 17l3 3" stroke="#00f2fe"></path>
+      </svg>
+      <div class="logo-text-group">
+        <span class="logo-title">FolderScope</span>
+        <span class="logo-subtitle">Project Workspace</span>
       </div>
+    </div>
+    
+    <!-- Middle Navigation / Actions -->
+    <div class="titlebar-actions">
+      <button id="header-new-btn" class="titlebar-btn">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        New Project
+      </button>
+      <button id="header-open-btn" class="titlebar-btn">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Open
+      </button>
+      <button id="header-settings-btn" class="titlebar-btn">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        Settings
+      </button>
+    </div>
 
-      <!-- Dropzone / Folder Picker -->
-      <div id="dropzone" class="dropzone">
-        <div class="dropzone-content">
-          <svg class="dropzone-icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+    <!-- Search Input -->
+    <div class="titlebar-search">
+      <svg class="search-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="search-input" placeholder="Search Bar" disabled>
+      <button id="clear-search" class="clear-search-btn hidden">&times;</button>
+    </div>
+
+    <!-- Right Side Profile Info -->
+    <div class="titlebar-right">
+      <button class="titlebar-bell-btn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+      </button>
+      <div class="user-avatar">JD</div>
+    </div>
+  </header>
+
+  <!-- App Container -->
+  <div class="app-container">
+    
+    <!-- Welcome State / Dropzone (Shown when no folder is scanned) -->
+    <section id="empty-state" class="welcome-screen">
+      <div class="welcome-card">
+        <svg class="welcome-icon" viewBox="0 0 24 24" width="60" height="60" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="rgba(0, 242, 254, 0.1)" stroke="#00f2fe"></path>
+          <circle cx="12" cy="13" r="3" stroke="#00f2fe"></circle>
+          <path d="M16 17l3 3" stroke="#00f2fe"></path>
+        </svg>
+        <h2>Welcome to FolderScope</h2>
+        <p>A premium offline workspace to recursively scan, preview, and print receipt dumps.</p>
+        
+        <div id="dropzone" class="welcome-dropzone">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
-          <p class="dropzone-title">Drag & Drop Folder Here</p>
-          <p class="dropzone-or">or</p>
-          <button id="select-btn" class="btn btn-primary">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="12" y1="8" x2="12" y2="16"></line>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-            Choose Folder
-          </button>
+          <h3>Drag & Drop a Folder Here</h3>
+          <span>or click the button below</span>
         </div>
-      </div>
-
-      <!-- Folder Details Panel (Hidden by default, shown when folder loaded) -->
-      <div id="folder-details" class="sidebar-section hidden">
-        <h3 class="section-title">Selected Folder</h3>
-        <div class="folder-path-card">
-          <span id="display-folder-name" class="folder-name-text">None</span>
-          <span id="display-folder-path" class="folder-path-text">No path selected</span>
-        </div>
-        <button id="sidebar-print-docs-btn" class="btn btn-primary btn-full" style="margin-bottom: 4px;">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-            <rect x="6" y="14" width="12" height="8"></rect>
+        
+        <button id="select-btn" class="btn btn-primary btn-large">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
           </svg>
-          Print All Documents
-        </button>
-        <button id="rescan-btn" class="btn btn-secondary btn-full">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-          </svg>
-          Rescan Folder
+          Choose Folder to Scan
         </button>
       </div>
+    </section>
 
-      <!-- Export Panel (Hidden until files loaded) -->
-      <div id="export-panel" class="sidebar-section hidden">
-        <h3 class="section-title">Export Results</h3>
-        <div class="export-buttons">
-          <button id="export-txt-btn" class="btn btn-outline btn-full">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            Export as TXT
-          </button>
-          <button id="export-csv-btn" class="btn btn-outline btn-full">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="9" y1="15" x2="15" y2="15"></line>
-              <line x1="12" y1="12" x2="12" y2="18"></line>
-            </svg>
-            Export as CSV
-          </button>
-          <button id="export-json-btn" class="btn btn-outline btn-full">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="16 18 22 12 16 6"></polyline>
-              <polyline points="8 6 2 12 8 18"></polyline>
-            </svg>
-            Export as JSON
-          </button>
-          <button id="copy-btn" class="btn btn-outline btn-full">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            Copy Tree to Clipboard
-          </button>
-          <button id="print-btn" class="btn btn-outline btn-full">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 6 2 18 2 18 9"></polyline>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-              <rect x="6" y="14" width="12" height="8"></rect>
-            </svg>
-            Print File List
-          </button>
+    <!-- Active Scanning State -->
+    <section id="scanning-state" class="scanning-state hidden">
+      <div class="loader-box">
+        <div class="spinner"></div>
+        <h3 id="scanning-title">Scanning Files...</h3>
+        <p id="scanning-detail">Analyzing directory structure...</p>
+        <div class="progress-bar-container">
+          <div id="progress-bar-fill" class="progress-bar-fill"></div>
         </div>
       </div>
+    </section>
 
-      <!-- App Status Footer -->
-      <div class="sidebar-footer">
-        <span class="status-indicator-dot active" id="status-dot"></span>
-        <span id="status-message" class="status-message">Ready to scan</span>
-      </div>
-    </aside>
-
-    <!-- Main View -->
-    <main class="main-content">
-      <!-- Top Stats Bar -->
-      <section class="stats-row">
-        <div class="stat-card">
-          <div class="stat-icon-wrapper files">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
+    <!-- Workspace Grid Layout (Shown when files are loaded) -->
+    <div id="workspace-grid" class="workspace-grid hidden">
+      
+      <!-- Left Column: Folder Explorer -->
+      <aside id="pane-tree" class="workspace-card folder-explorer-card">
+        <div class="card-header">
+          <span class="card-title">Folder Explorer</span>
+          <button class="icon-btn collapse-btn">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
-          </div>
-          <div class="stat-info">
-            <span class="stat-label">Total Files</span>
-            <span id="stat-files-count" class="stat-value">-</span>
+          </button>
+        </div>
+        <div id="tree-container" class="tree-root"></div>
+      </aside>
+
+      <!-- Center Column: Files & Folders -->
+      <section id="pane-list" class="workspace-card files-card">
+        <div class="card-header">
+          <span class="card-title">Files</span>
+          <div class="card-header-actions">
+            <!-- Printing all selection shortcut -->
+            <button id="sidebar-print-docs-btn" class="btn btn-secondary btn-small">
+              Select All to Print
+            </button>
           </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon-wrapper folders">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-            </svg>
-          </div>
-          <div class="stat-info">
-            <span class="stat-label">Folders</span>
-            <span id="stat-folders-count" class="stat-value">-</span>
-          </div>
+        <div id="list-container" class="list-root"></div>
+      </section>
+
+      <!-- Right Column: File Preview -->
+      <section id="preview-pane" class="workspace-card preview-card">
+        <div class="card-header">
+          <span class="card-title">File Preview</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon-wrapper size">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
-              <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
-            </svg>
+        <div class="preview-viewport">
+          <div id="preview-filename" class="preview-filename-text">Select a file to preview</div>
+          
+          <div class="preview-viewport-content">
+            <div class="preview-placeholder" id="preview-placeholder">
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <p>Select a file to preview</p>
+            </div>
+            <iframe id="preview-iframe" class="preview-iframe hidden"></iframe>
+            <pre id="preview-text" class="preview-text hidden"></pre>
           </div>
-          <div class="stat-info">
-            <span class="stat-label">Total Size</span>
-            <span id="stat-total-size" class="stat-value">-</span>
+
+          <div class="preview-metadata-box hidden" id="preview-metadata">
+            <span id="preview-meta-size">Size: -</span>
+            <span id="preview-meta-date">Modified: -</span>
+          </div>
+
+          <div class="preview-actions-bar hidden" id="preview-actions">
+            <button id="preview-open-btn" class="btn btn-outline">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              Open
+            </button>
+            <button id="preview-share-btn" class="btn btn-outline">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Share
+            </button>
+            <button id="preview-print-btn" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              Print
+            </button>
           </div>
         </div>
       </section>
 
-      <!-- Main Explorer Container -->
-      <section class="explorer-card">
-        <!-- Search & Control Header -->
-        <div class="explorer-header">
-          <div class="search-box">
-            <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="search-input" placeholder="Search files by name..." disabled>
-            <button id="clear-search" class="clear-search-btn hidden">&times;</button>
+      <!-- Bottom Row: Print Queue Progress -->
+      <section id="pane-queue" class="workspace-card print-progress-card">
+        <div class="print-progress-header">
+          <div class="print-header-left">
+            <span class="card-title">Print Queue Progress</span>
+            <span id="print-queue-summary" class="print-queue-summary">0 documents queued</span>
           </div>
-
-          <div class="view-controls">
-            <div class="tab-buttons">
-              <button id="tab-tree" class="tab-btn" data-tab="tree">Tree View</button>
-              <button id="tab-list" class="tab-btn" data-tab="list">Flat List</button>
-              <button id="tab-queue" class="tab-btn active" data-tab="queue">Print Queue</button>
-            </div>
-            <div class="sort-selector hidden" id="sort-selector-wrapper">
-              <label for="sort-select">Sort:</label>
-              <select id="sort-select">
-                <option value="name-asc">Name (A-Z)</option>
-                <option value="name-desc">Name (Z-A)</option>
-                <option value="size-desc">Size (Large to Small)</option>
-                <option value="size-asc">Size (Small to Large)</option>
-                <option value="type-asc">Type</option>
+          <div class="print-header-right">
+            <div class="printer-select-wrapper">
+              <label for="printer-select">Target Printer:</label>
+              <select id="printer-select">
+                <option value="">Loading system printers...</option>
               </select>
             </div>
+            <button id="start-print-btn" class="btn btn-primary" disabled>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              Print Selected Documents
+            </button>
           </div>
         </div>
-
-        <!-- Explorer Output Area -->
-        <div class="explorer-viewport">
-          <div class="explorer-content-split">
-            <!-- Left side content: View Panes -->
-            <div class="explorer-views">
-              <!-- Welcome / Empty State -->
-              <div id="empty-state" class="empty-state">
-                <div class="welcome-box">
-                  <div class="welcome-icon">
-                    <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                      <path d="M12 18v-6"></path>
-                      <path d="M9 15h6"></path>
-                    </svg>
-                  </div>
-                  <h2>Select a folder to begin</h2>
-                  <p>Drag and drop any folder here or use the folder selection button on the left sidebar to recursively list and analyze its files.</p>
-                </div>
-              </div>
-
-              <!-- Active Scanning State -->
-              <div id="scanning-state" class="scanning-state hidden">
-                <div class="loader-box">
-                  <div class="spinner"></div>
-                  <h3 id="scanning-title">Scanning Files...</h3>
-                  <p id="scanning-detail">Analyzing directory structure...</p>
-                  <div class="progress-bar-container">
-                    <div id="progress-bar-fill" class="progress-bar-fill"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Tree View Pane -->
-              <div id="pane-tree" class="view-pane hidden">
-                <div id="tree-container" class="tree-root"></div>
-              </div>
-
-              <!-- Flat List Pane -->
-              <div id="pane-list" class="view-pane hidden">
-                <div class="list-table-header">
-                  <span class="col-name">Name / Path</span>
-                  <span class="col-type">Type</span>
-                  <span class="col-size">Size</span>
-                </div>
-                <div id="list-container" class="list-root"></div>
-              </div>
-
-              <!-- Print Queue Pane -->
-              <div id="pane-queue" class="view-pane hidden">
-                <div class="queue-settings-bar">
-                  <div class="printer-select-wrapper">
-                    <label for="printer-select">Target Printer:</label>
-                    <select id="printer-select">
-                      <option value="">Loading system printers...</option>
-                    </select>
-                  </div>
-                  <button id="start-print-btn" class="btn btn-primary" disabled>
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                      <rect x="6" y="14" width="12" height="8"></rect>
-                    </svg>
-                    Print Selected Documents
-                  </button>
-                </div>
-                
-                <div class="queue-table-header">
-                  <span class="col-check"><input type="checkbox" id="queue-check-all" checked></span>
-                  <span class="col-name-q">Document Name</span>
-                  <span class="col-path-q">Folder / Path</span>
-                  <span class="col-size-q">Size</span>
-                  <span class="col-status-q">Status</span>
-                </div>
-                <div id="queue-container" class="queue-root"></div>
-              </div>
-            </div>
-
-            <!-- Right side content: Document Preview Panel -->
-            <div id="preview-pane" class="preview-pane">
-              <div class="preview-placeholder">
-                <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <p>Select a file to preview</p>
-              </div>
-              <iframe id="preview-iframe" class="preview-iframe hidden"></iframe>
-              <pre id="preview-text" class="preview-text hidden"></pre>
-            </div>
-          </div>
+        
+        <div class="queue-table-header">
+          <span class="col-check"><input type="checkbox" id="queue-check-all" checked></span>
+          <span class="col-name-q">Document Name</span>
+          <span class="col-progress-q">Spooling Progress</span>
+          <span class="col-status-q">Status</span>
         </div>
+        
+        <div id="queue-container" class="queue-root"></div>
       </section>
+    </div>
 
-      <!-- Advanced Analysis Section (Extensions & Top Files) -->
-      <section id="analysis-row" class="analysis-row hidden">
-        <!-- Top Extensions Card -->
-        <div class="analysis-card">
-          <h3 class="analysis-card-title">File Types Breakdown</h3>
-          <div id="extensions-chart-container" class="extensions-chart-container">
-            <!-- Dynamic list of file extensions with horizontal progress bars -->
-          </div>
-        </div>
-
-        <!-- Top Large Files Card -->
-        <div class="analysis-card">
-          <h3 class="analysis-card-title">Largest Files</h3>
-          <div id="large-files-container" class="large-files-container">
-            <!-- Dynamic list of the largest files -->
-          </div>
-        </div>
-      </section>
-    </main>
+    <!-- Hidden compatibility wrapper to prevent JS reference errors for legacy features -->
+    <div style="display: none !important;">
+      <div id="folder-details">
+        <span id="display-folder-name"></span>
+        <span id="display-folder-path"></span>
+      </div>
+      <button id="rescan-btn"></button>
+      <div id="export-panel">
+        <button id="export-txt-btn"></button>
+        <button id="export-csv-btn"></button>
+        <button id="export-json-btn"></button>
+        <button id="copy-btn"></button>
+        <button id="print-btn"></button>
+      </div>
+      <span id="status-dot"></span>
+      <span id="status-message"></span>
+      <span id="stat-files-count"></span>
+      <span id="stat-folders-count"></span>
+      <span id="stat-total-size"></span>
+      <button id="tab-tree"></button>
+      <button id="tab-list"></button>
+      <button id="tab-queue"></button>
+      <div id="sort-selector-wrapper">
+        <select id="sort-select">
+          <option value="name-asc" selected></option>
+        </select>
+      </div>
+      <div id="analysis-row">
+        <div id="extensions-chart-container"></div>
+        <div id="large-files-container"></div>
+      </div>
+    </div>
   </div>
+
   <script src="renderer.js"></script>
 </body>
 </html>
