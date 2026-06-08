@@ -310,12 +310,23 @@ function setupEventListeners() {
     }
   });
 
-  previewShareBtn.addEventListener('click', () => {
+  previewShareBtn.addEventListener('click', async () => {
     if (activePreviewFile && window.api && window.api.copyToClipboard) {
       // Normalize to Windows backslashes for clipboard path sharing
       const normalizedPath = activePreviewFile.path.replace(/\//g, '\\');
-      window.api.copyToClipboard(normalizedPath);
-      showStatus('File path copied to clipboard!', 'active');
+      const success = await window.api.copyToClipboard(normalizedPath);
+      if (success) {
+        const originalHtml = previewShareBtn.innerHTML;
+        previewShareBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--success)" stroke-width="2" style="vertical-align: middle;">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Copied!
+        `;
+        setTimeout(() => {
+          previewShareBtn.innerHTML = originalHtml;
+        }, 2000);
+      }
     }
   });
 

@@ -15,6 +15,8 @@ if (!gotTheLock) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
+    } else {
+      createWindow();
     }
   });
 
@@ -67,7 +69,7 @@ function createWindow() {
 }
 
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin') app.exit(0);
 });
 
 // IPC handler for directory selection dialog
@@ -339,7 +341,7 @@ function httpsGetJson(url) {
         'User-Agent': 'FolderScope-Updater'
       }
     };
-    https.get(url, options, (res) => {
+    const req = https.get(url, options, (res) => {
       if (res.statusCode < 200 || res.statusCode >= 300) {
         return reject(new Error(`HTTP Status Code: ${res.statusCode}`));
       }
@@ -354,7 +356,15 @@ function httpsGetJson(url) {
           reject(err);
         }
       });
-    }).on('error', (err) => {
+    });
+
+    // Set 5-second timeout
+    req.setTimeout(5000, () => {
+      req.destroy();
+      reject(new Error('Request timeout after 5000ms'));
+    });
+
+    req.on('error', (err) => {
       reject(err);
     });
   });
