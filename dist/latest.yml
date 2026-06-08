@@ -1,8 +1,8 @@
 version: 2.0.0
 files:
   - url: FolderScope-Setup-2.0.0.exe
-    sha512: ScyGQ2zkdr1pWuYXfyrc95NyjhFVstsuqyMzvR5LkIV/HA8MU2DuIMWtamiqlFn1A1ipVxFEmhxDaMlwFwADQQ==
-    size: 78857619
+    sha512: 0imVBJvZRwx2L+ATBf0O57McEjQBlXNjWFZZCGzFn++WS2ceK7fkGF3BL1+Naq10+7DGb/O3yxdWbQD57sjKWg==
+    size: 78857686
 path: FolderScope-Setup-2.0.0.exe
-sha512: ScyGQ2zkdr1pWuYXfyrc95NyjhFVstsuqyMzvR5LkIV/HA8MU2DuIMWtamiqlFn1A1ipVxFEmhxDaMlwFwADQQ==
-releaseDate: '2026-06-08T02:01:08.356Z'
+sha512: 0imVBJvZRwx2L+ATBf0O57McEjQBlXNjWFZZCGzFn++WS2ceK7fkGF3BL1+Naq10+7DGb/O3yxdWbQD57sjKWg==
+releaseDate: '2026-06-08T02:16:29.777Z'

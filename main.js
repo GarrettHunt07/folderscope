@@ -460,12 +460,21 @@ ipcMain.handle('install-update', async (event, filePath) => {
     if (!fs.existsSync(filePath)) {
       throw new Error('Installer file not found');
     }
-    // Launch installer
-    await shell.openPath(filePath);
-    // Quit application after 1 second so installer can safely replace files
+    
+    // Launch installer as a detached child process so it runs independently
+    const { spawn } = require('child_process');
+    const child = spawn(filePath, [], {
+      detached: true,
+      stdio: 'ignore'
+    });
+    child.unref();
+
+    // Terminate this process immediately (after a tiny delay to allow IPC response to spool)
+    // so the installer doesn't run into a locked-file race condition.
     setTimeout(() => {
-      app.quit();
-    }, 1000);
+      app.exit(0);
+    }, 100);
+
     return { success: true };
   } catch (err) {
     console.error('Install error:', err);
