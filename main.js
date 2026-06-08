@@ -4,6 +4,29 @@ const fs = require('fs');
 
 let mainWindow;
 
+// Single Instance Lock
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, focus the main window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
+    createWindow();
+
+    app.on('activate', function () {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -42,14 +65,6 @@ function createWindow() {
     mainWindow.show();
   });
 }
-
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
 
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
