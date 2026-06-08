@@ -33,8 +33,10 @@ function createWindow() {
 
   mainWindow.loadFile('index.html');
 
-  // Open the DevTools if needed (optional)
-  mainWindow.webContents.openDevTools();
+  // Open the DevTools if in development mode
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
+  }
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
