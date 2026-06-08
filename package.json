@@ -12,7 +12,8 @@
     "productName": "FolderScope",
     "win": {
       "icon": "icon.ico",
-      "target": "nsis"
+      "target": "nsis",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
