@@ -22,6 +22,7 @@ let searchQuery = '';
 let sortBy = 'name-asc';
 let checkedFilePaths = new Set();
 let filePrintStatuses = {};
+let activePreviewFile = null;
 
 // DOM elements
 const dropzone = document.getElementById('dropzone');
@@ -300,6 +301,37 @@ function setupEventListeners() {
   copyBtn.addEventListener('click', handleCopyToClipboard);
   printBtn.addEventListener('click', () => {
     window.print();
+  });
+
+  // Preview action buttons (bound once at startup)
+  previewOpenBtn.addEventListener('click', async () => {
+    if (activePreviewFile && window.api && window.api.openPath) {
+      await window.api.openPath(activePreviewFile.path);
+    }
+  });
+
+  previewShareBtn.addEventListener('click', () => {
+    if (activePreviewFile && window.api && window.api.copyToClipboard) {
+      // Normalize to Windows backslashes for clipboard path sharing
+      const normalizedPath = activePreviewFile.path.replace(/\//g, '\\');
+      window.api.copyToClipboard(normalizedPath);
+      showStatus('File path copied to clipboard!', 'active');
+    }
+  });
+
+  previewPrintBtn.addEventListener('click', async () => {
+    if (activePreviewFile && isPrintable(activePreviewFile)) {
+      previewPrintBtn.disabled = true;
+      showStatus(`Spooling print job for ${activePreviewFile.name}...`, 'busy');
+      try {
+        await window.api.printFiles({ filePaths: [activePreviewFile.path], printerName: printerSelect.value });
+        showStatus('Print job sent successfully!', 'active');
+      } catch (err) {
+        showStatus(`Printing failed: ${err.message}`, 'error');
+      } finally {
+        previewPrintBtn.disabled = false;
+      }
+    }
   });
   
   // Search input
@@ -1569,6 +1601,8 @@ async function showFilePreview(file) {
     return;
   }
 
+  activePreviewFile = file;
+
   const ext = (file.ext || '').toLowerCase();
   const filePath = file.path;
   
@@ -1589,48 +1623,6 @@ async function showFilePreview(file) {
   
   const isPrintableFile = isPrintable(file);
   previewPrintBtn.disabled = !isPrintableFile;
-  
-  // Remove previous listeners by cloning
-  const openClone = previewOpenBtn.cloneNode(true);
-  const shareClone = previewShareBtn.cloneNode(true);
-  const printClone = previewPrintBtn.cloneNode(true);
-  
-  previewOpenBtn.parentNode.replaceChild(openClone, previewOpenBtn);
-  previewShareBtn.parentNode.replaceChild(shareClone, previewShareBtn);
-  previewPrintBtn.parentNode.replaceChild(printClone, previewPrintBtn);
-  
-  // Bind new listeners
-  const newOpenBtn = document.getElementById('preview-open-btn');
-  const newShareBtn = document.getElementById('preview-share-btn');
-  const newPrintBtn = document.getElementById('preview-print-btn');
-  
-  newOpenBtn.addEventListener('click', async () => {
-    if (window.api && window.api.openPath) {
-      await window.api.openPath(filePath);
-    }
-  });
-  
-  newShareBtn.addEventListener('click', () => {
-    if (window.api && window.api.copyToClipboard) {
-      window.api.copyToClipboard(filePath);
-      showStatus('File path copied to clipboard!', 'active');
-    }
-  });
-  
-  newPrintBtn.addEventListener('click', async () => {
-    if (isPrintableFile) {
-      newPrintBtn.disabled = true;
-      showStatus(`Spooling print job for ${file.name}...`, 'busy');
-      try {
-        await window.api.printFiles({ filePaths: [filePath], printerName: printerSelect.value });
-        showStatus('Print job sent successfully!', 'active');
-      } catch (err) {
-        showStatus(`Printing failed: ${err.message}`, 'error');
-      } finally {
-        newPrintBtn.disabled = false;
-      }
-    }
-  });
 
   try {
     if (ext === '.pdf') {
@@ -1687,6 +1679,7 @@ async function showFilePreview(file) {
 }
 
 function clearFilePreview() {
+  activePreviewFile = null;
   previewFilename.textContent = 'Select a file to preview';
   previewMetadata.classList.add('hidden');
   previewActions.classList.add('hidden');

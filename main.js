@@ -314,6 +314,11 @@ ipcMain.handle('read-file-content', async (event, filePath) => {
 // IPC handler to open file in external default program
 ipcMain.handle('open-path', async (event, filePath) => {
   try {
+    if (process.platform === 'win32') {
+      filePath = path.win32.normalize(filePath);
+    } else {
+      filePath = path.normalize(filePath);
+    }
     await shell.openPath(filePath);
     return { success: true };
   } catch (err) {
