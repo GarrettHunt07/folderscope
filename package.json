@@ -1,15 +1,37 @@
 {
   "name": "folderscope",
   "version": "1.0.0",
-  "description": "FolderScope - A premium Windows desktop app to recursively scan, list, and analyze folders on your hard drive.",
+  "description": "FolderScope - A premium Windows desktop app to recursively scan, list, and print folders on your hard drive.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --windows"
+  },
+  "build": {
+    "appId": "com.folderscope.app",
+    "productName": "FolderScope",
+    "win": {
+      "icon": "icon.ico",
+      "target": "nsis"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "styles.css",
+      "icon.ico",
+      "icon.png"
+    ]
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^31.0.1"
+    "electron": "^31.0.1",
+    "electron-builder": "^24.13.3"
   }
 }
