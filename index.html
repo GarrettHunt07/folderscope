@@ -52,7 +52,8 @@
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
-        Settings
+        <span>Settings</span>
+        <span id="settings-update-badge" class="update-badge hidden"></span>
       </button>
     </div>
 
@@ -274,6 +275,113 @@
       <div id="analysis-row">
         <div id="extensions-chart-container"></div>
         <div id="large-files-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings & Updates Modal -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <h3>Application Settings</h3>
+        </div>
+        <button id="close-settings-btn" class="modal-close-btn">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Sidebar Tabs -->
+        <aside class="modal-sidebar">
+          <button id="tab-settings-general" class="modal-tab-btn active">General</button>
+          <button id="tab-settings-updates" class="modal-tab-btn">
+            Updates
+            <span id="tab-update-badge" class="update-badge-small hidden"></span>
+          </button>
+        </aside>
+        
+        <!-- Tab Content Panes -->
+        <main class="modal-content-pane">
+          <!-- General Tab -->
+          <div id="pane-settings-general" class="settings-pane">
+            <div class="settings-section">
+              <h4>System Preferences</h4>
+              <div class="setting-row">
+                <span class="setting-label">Processing Mode</span>
+                <span class="setting-value font-mono">100% Offline (Local Only)</span>
+              </div>
+              <div class="setting-row">
+                <span class="setting-label">Spooling Engine</span>
+                <span class="setting-value font-mono">Native PDFium Sequential Print</span>
+              </div>
+            </div>
+            
+            <div class="settings-section">
+              <h4>Active Printer Configuration</h4>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">This is the target printer used for automated receipt queues.</p>
+              <div class="setting-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <select id="modal-printer-select" style="width:100%;">
+                  <option value="">Loading system printers...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Updates Tab -->
+          <div id="pane-settings-updates" class="settings-pane hidden">
+            <div class="settings-section">
+              <h4>Check for Updates</h4>
+              <div class="update-status-box">
+                <div class="version-info-row">
+                  <div>
+                    <span class="label">Current Version:</span>
+                    <span id="current-version-text" class="value">v1.0.0</span>
+                  </div>
+                  <div>
+                    <span class="label">Latest Version:</span>
+                    <span id="latest-version-text" class="value">-</span>
+                  </div>
+                </div>
+                
+                <div id="update-status-message" class="update-status-message">
+                  Click the button below to check the GitHub repository for updates.
+                </div>
+              </div>
+              
+              <button id="modal-check-updates-btn" class="btn btn-secondary" style="width:100%; margin-top:12px;">
+                Check for Updates
+              </button>
+            </div>
+            
+            <!-- Update Info Pane (hidden by default) -->
+            <div id="update-info-section" class="settings-section hidden">
+              <h4 id="update-title" style="color:var(--accent-cyan);">Update Available!</h4>
+              
+              <div class="release-notes-container">
+                <span class="label" style="display:block; margin-bottom:4px;">Changelog:</span>
+                <pre id="release-notes-text" class="release-notes-text"></pre>
+              </div>
+              
+              <!-- Download Progress block -->
+              <div id="update-download-progress-box" class="update-download-progress-box hidden">
+                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+                  <span id="download-progress-status">Downloading update installer...</span>
+                  <span id="download-progress-percent">0%</span>
+                </div>
+                <div class="queue-progress-bar-container">
+                  <div id="download-progress-bar-fill" class="queue-progress-bar-fill active" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <button id="modal-download-updates-btn" class="btn btn-primary" style="width:100%; margin-top:12px;">
+                Download & Install Update
+              </button>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   </div>

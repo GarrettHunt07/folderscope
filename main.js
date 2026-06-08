@@ -307,3 +307,170 @@ ipcMain.handle('open-path', async (event, filePath) => {
   }
 });
 
+// --- In-App Updates Mechanism ---
+
+const https = require('https');
+
+// Helper to make HTTPS requests
+function httpsGetJson(url) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      headers: {
+        'User-Agent': 'FolderScope-Updater'
+      }
+    };
+    https.get(url, options, (res) => {
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        return reject(new Error(`HTTP Status Code: ${res.statusCode}`));
+      }
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+}
+
+// IPC handler to query GitHub Releases
+ipcMain.handle('check-for-updates', async () => {
+  try {
+    const release = await httpsGetJson('https://api.github.com/repos/GarrettHunt07/folderscope/releases/latest');
+    const latestVersion = release.tag_name.replace(/^v/, ''); // Clean 'v' prefix if present
+    const currentVersion = app.getVersion();
+    
+    // Semver comparison
+    const latestParts = latestVersion.split('.').map(Number);
+    const currentParts = currentVersion.split('.').map(Number);
+    
+    let updateAvailable = false;
+    for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
+      const latestPart = latestParts[i] || 0;
+      const currentPart = currentParts[i] || 0;
+      if (latestPart > currentPart) {
+        updateAvailable = true;
+        break;
+      } else if (latestPart < currentPart) {
+        break;
+      }
+    }
+    
+    // Find installer asset (.exe)
+    let downloadUrl = null;
+    if (release.assets && release.assets.length > 0) {
+      const asset = release.assets.find(a => a.name.toLowerCase().endsWith('.exe'));
+      if (asset) {
+        downloadUrl = asset.browser_download_url;
+      }
+    }
+
+    return {
+      updateAvailable,
+      latestVersion,
+      currentVersion,
+      releaseNotes: release.body || 'No release notes provided.',
+      downloadUrl,
+      publishDate: release.published_at
+    };
+  } catch (err) {
+    console.error('Check for updates failed:', err);
+    throw new Error(err.message || 'Failed to fetch updates');
+  }
+});
+
+// IPC handler to download installer
+ipcMain.handle('download-update', async (event, downloadUrl) => {
+  const tempDir = app.getPath('temp');
+  const fileName = 'FolderScope_Setup_Latest.exe';
+  const filePath = path.join(tempDir, fileName);
+  
+  // Delete existing installer if present to avoid conflicts
+  if (fs.existsSync(filePath)) {
+    try {
+      fs.unlinkSync(filePath);
+    } catch (e) {
+      console.error('Failed to delete old installer:', e);
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(filePath);
+    const options = {
+      headers: {
+        'User-Agent': 'FolderScope-Updater'
+      }
+    };
+
+    function download(url) {
+      https.get(url, options, (response) => {
+        // Handle redirect redirects
+        if (response.statusCode === 301 || response.statusCode === 302) {
+          download(response.headers.location);
+          return;
+        }
+
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download: Status Code ${response.statusCode}`));
+          return;
+        }
+
+        const totalBytes = parseInt(response.headers['content-length'], 10) || 0;
+        let downloadedBytes = 0;
+
+        response.on('data', (chunk) => {
+          downloadedBytes += chunk.length;
+          file.write(chunk);
+
+          // Broadcast download progress to renderer
+          if (mainWindow) {
+            mainWindow.webContents.send('download-progress', {
+              downloaded: downloadedBytes,
+              total: totalBytes,
+              percent: totalBytes > 0 ? Math.round((downloadedBytes / totalBytes) * 100) : 0
+            });
+          }
+        });
+
+        response.on('end', () => {
+          file.end();
+          resolve(filePath);
+        });
+      }).on('error', (err) => {
+        file.end();
+        fs.unlink(filePath, () => {}); // clean up
+        reject(err);
+      });
+    }
+
+    download(downloadUrl);
+  });
+});
+
+// IPC handler to run installer executable and quit
+ipcMain.handle('install-update', async (event, filePath) => {
+  try {
+    if (!fs.existsSync(filePath)) {
+      throw new Error('Installer file not found');
+    }
+    // Launch installer
+    await shell.openPath(filePath);
+    // Quit application after 1 second so installer can safely replace files
+    setTimeout(() => {
+      app.quit();
+    }, 1000);
+    return { success: true };
+  } catch (err) {
+    console.error('Install error:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+

@@ -96,6 +96,31 @@ const previewShareBtn = document.getElementById('preview-share-btn');
 const previewPrintBtn = document.getElementById('preview-print-btn');
 const printQueueSummary = document.getElementById('print-queue-summary');
 
+// Settings & Updates Modal elements
+const settingsModal = document.getElementById('settings-modal');
+const closeSettingsBtn = document.getElementById('close-settings-btn');
+const tabSettingsGeneral = document.getElementById('tab-settings-general');
+const tabSettingsUpdates = document.getElementById('tab-settings-updates');
+const paneSettingsGeneral = document.getElementById('pane-settings-general');
+const paneSettingsUpdates = document.getElementById('pane-settings-updates');
+const modalPrinterSelect = document.getElementById('modal-printer-select');
+const currentVersionText = document.getElementById('current-version-text');
+const latestVersionText = document.getElementById('latest-version-text');
+const updateStatusMessage = document.getElementById('update-status-message');
+const modalCheckUpdatesBtn = document.getElementById('modal-check-updates-btn');
+const updateInfoSection = document.getElementById('update-info-section');
+const updateTitle = document.getElementById('update-title');
+const releaseNotesText = document.getElementById('release-notes-text');
+const updateDownloadProgressBox = document.getElementById('update-download-progress-box');
+const downloadProgressStatus = document.getElementById('download-progress-status');
+const downloadProgressPercent = document.getElementById('download-progress-percent');
+const downloadProgressBarFill = document.getElementById('download-progress-bar-fill');
+const modalDownloadUpdatesBtn = document.getElementById('modal-download-updates-btn');
+const settingsUpdateBadge = document.getElementById('settings-update-badge');
+const tabUpdateBadge = document.getElementById('tab-update-badge');
+
+let latestDownloadUrl = null;
+
 // Global Workspace state variables
 let activeDirectoryPath = '';
 let lastSelectedFilePath = '';
@@ -137,6 +162,8 @@ function getNodePath(node, name) {
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   loadSystemPrinters();
+  // Auto-check for updates silently on startup
+  checkForUpdates(true);
 });
 
 function setupEventListeners() {
@@ -156,9 +183,29 @@ function setupEventListeners() {
   headerNewBtn.addEventListener('click', handleSelectFolder);
   headerOpenBtn.addEventListener('click', handleSelectFolder);
   
-  headerSettingsBtn.addEventListener('click', () => {
-    alert("FolderScope Settings:\n\n• Processing Mode: 100% Offline\n• Spooling Engine: Native PDFium Sequential Print\n• Active Printer: " + (printerSelect.value || 'System Default') + "\n• Version: v1.0.0");
+  headerSettingsBtn.addEventListener('click', openSettingsModal);
+  closeSettingsBtn.addEventListener('click', closeSettingsModal);
+  
+  // Close modal when clicking outside the modal card
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+      closeSettingsModal();
+    }
   });
+
+  tabSettingsGeneral.addEventListener('click', () => switchSettingsTab('general'));
+  tabSettingsUpdates.addEventListener('click', () => switchSettingsTab('updates'));
+
+  modalPrinterSelect.addEventListener('change', (e) => {
+    printerSelect.value = e.target.value;
+  });
+
+  printerSelect.addEventListener('change', (e) => {
+    modalPrinterSelect.value = e.target.value;
+  });
+
+  modalCheckUpdatesBtn.addEventListener('click', () => checkForUpdates(false));
+  modalDownloadUpdatesBtn.addEventListener('click', downloadAndInstallUpdate);
   
   // Drag and Drop events on dropzone
   dropzone.addEventListener('dragenter', (e) => {
@@ -1152,9 +1199,12 @@ async function loadSystemPrinters() {
     
     // Clear and populate dropdown
     printerSelect.innerHTML = '';
+    modalPrinterSelect.innerHTML = '';
     
     if (systemPrinters.length === 0) {
-      printerSelect.innerHTML = '<option value="">No printers found</option>';
+      const optionStr = '<option value="">No printers found</option>';
+      printerSelect.innerHTML = optionStr;
+      modalPrinterSelect.innerHTML = optionStr;
       return;
     }
     
@@ -1162,7 +1212,11 @@ async function loadSystemPrinters() {
     const defaultOption = document.createElement('option');
     defaultOption.value = '';
     defaultOption.textContent = 'System Default Printer';
+    
+    const defaultOptionModal = defaultOption.cloneNode(true);
+    
     printerSelect.appendChild(defaultOption);
+    modalPrinterSelect.appendChild(defaultOptionModal);
     
     systemPrinters.forEach(printer => {
       const option = document.createElement('option');
@@ -1172,11 +1226,18 @@ async function loadSystemPrinters() {
         option.selected = true;
         option.textContent += ' (Default)';
       }
+      
+      const optionModal = option.cloneNode(true);
+      optionModal.selected = option.selected;
+      
       printerSelect.appendChild(option);
+      modalPrinterSelect.appendChild(optionModal);
     });
   } catch (err) {
     console.error('Failed to load system printers:', err);
-    printerSelect.innerHTML = '<option value="">Error loading printers</option>';
+    const optionStr = '<option value="">Error loading printers</option>';
+    printerSelect.innerHTML = optionStr;
+    modalPrinterSelect.innerHTML = optionStr;
   }
 }
 
@@ -1581,4 +1642,139 @@ function clearFilePreview() {
     </svg>
     <p>Select a file to preview</p>
   `;
+}
+
+// --- Settings & Updates Modal Controller ---
+
+function openSettingsModal() {
+  settingsModal.classList.remove('hidden');
+  switchSettingsTab('general');
+  
+  // Sync selected printer
+  modalPrinterSelect.value = printerSelect.value;
+}
+
+function closeSettingsModal() {
+  settingsModal.classList.add('hidden');
+}
+
+function switchSettingsTab(tab) {
+  if (tab === 'general') {
+    tabSettingsGeneral.classList.add('active');
+    tabSettingsUpdates.classList.remove('active');
+    paneSettingsGeneral.classList.remove('hidden');
+    paneSettingsUpdates.classList.add('hidden');
+  } else if (tab === 'updates') {
+    tabSettingsGeneral.classList.remove('active');
+    tabSettingsUpdates.classList.add('active');
+    paneSettingsGeneral.classList.add('hidden');
+    paneSettingsUpdates.classList.remove('hidden');
+    
+    // Clear check updates button state
+    modalCheckUpdatesBtn.textContent = 'Check for Updates';
+    modalCheckUpdatesBtn.disabled = false;
+  }
+}
+
+async function checkForUpdates(isAuto = false) {
+  try {
+    if (!isAuto) {
+      modalCheckUpdatesBtn.textContent = 'Checking for updates...';
+      modalCheckUpdatesBtn.disabled = true;
+      updateStatusMessage.textContent = 'Contacting GitHub Releases API...';
+    }
+    
+    const result = await window.api.checkForUpdates();
+    
+    currentVersionText.textContent = `v${result.currentVersion}`;
+    latestVersionText.textContent = `v${result.latestVersion}`;
+    
+    if (result.updateAvailable) {
+      // Show badges
+      settingsUpdateBadge.classList.remove('hidden');
+      tabUpdateBadge.classList.remove('hidden');
+      
+      // Update status message
+      updateStatusMessage.innerHTML = `<span style="color:var(--accent-cyan); font-weight:600;">Update Available!</span> A new version (v${result.latestVersion}) is ready to download.`;
+      
+      // Show release notes & download button
+      updateInfoSection.classList.remove('hidden');
+      releaseNotesText.textContent = result.releaseNotes;
+      latestDownloadUrl = result.downloadUrl;
+      
+      // Reset progress box
+      updateDownloadProgressBox.classList.add('hidden');
+      modalDownloadUpdatesBtn.classList.remove('hidden');
+      modalDownloadUpdatesBtn.textContent = 'Download & Install Update';
+      modalDownloadUpdatesBtn.disabled = !result.downloadUrl;
+      
+      if (!result.downloadUrl) {
+        updateStatusMessage.innerHTML += " <span style='color:var(--warning);'>(No installer asset .exe found in release)</span>";
+      }
+    } else {
+      // Hide badges
+      settingsUpdateBadge.classList.add('hidden');
+      tabUpdateBadge.classList.add('hidden');
+      
+      updateStatusMessage.textContent = 'FolderScope is up to date! You are running the latest version.';
+      updateInfoSection.classList.add('hidden');
+    }
+  } catch (err) {
+    console.error('Update check error:', err);
+    if (!isAuto) {
+      updateStatusMessage.innerHTML = `<span style="color:var(--error);">Failed to check for updates:</span> ${err.message || 'Network error'}. Make sure you have an internet connection.`;
+    }
+  } finally {
+    if (!isAuto) {
+      modalCheckUpdatesBtn.textContent = 'Check for Updates';
+      modalCheckUpdatesBtn.disabled = false;
+    }
+  }
+}
+
+async function downloadAndInstallUpdate() {
+  if (!latestDownloadUrl) return;
+  
+  modalDownloadUpdatesBtn.disabled = true;
+  modalDownloadUpdatesBtn.textContent = 'Downloading...';
+  modalCheckUpdatesBtn.disabled = true;
+  closeSettingsBtn.style.display = 'none'; // Prevent closing during download
+  
+  updateDownloadProgressBox.classList.remove('hidden');
+  downloadProgressPercent.textContent = '0%';
+  downloadProgressBarFill.style.width = '0%';
+  downloadProgressStatus.textContent = 'Starting download...';
+  
+  const cleanupProgress = window.api.onDownloadProgress((progress) => {
+    downloadProgressPercent.textContent = `${progress.percent}%`;
+    downloadProgressBarFill.style.width = `${progress.percent}%`;
+    downloadProgressStatus.textContent = `Downloaded: ${formatBytes(progress.downloaded)} of ${formatBytes(progress.total)}`;
+  });
+  
+  try {
+    const filePath = await window.api.downloadUpdate(latestDownloadUrl);
+    downloadProgressStatus.textContent = 'Download complete. Executing setup...';
+    downloadProgressPercent.textContent = '100%';
+    downloadProgressBarFill.style.width = '100%';
+    
+    // Tiny delay to let user see 100%
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const result = await window.api.installUpdate(filePath);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+  } catch (err) {
+    console.error('Download/install failed:', err);
+    updateStatusMessage.innerHTML = `<span style="color:var(--error);">Update installation failed:</span> ${err.message || 'Download error'}.`;
+    
+    // Restore UI
+    modalDownloadUpdatesBtn.disabled = false;
+    modalDownloadUpdatesBtn.textContent = 'Download & Install Update';
+    modalCheckUpdatesBtn.disabled = false;
+    closeSettingsBtn.style.display = 'block';
+    updateDownloadProgressBox.classList.add('hidden');
+  } finally {
+    cleanupProgress();
+  }
 }

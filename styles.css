@@ -1019,3 +1019,252 @@ body {
     padding: 4px 6px;
   }
 }
+
+/* Settings & Updates Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(3, 7, 18, 0.65);
+  backdrop-filter: blur(15px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Modal Content Card */
+.modal-card {
+  width: 650px;
+  height: 480px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(0, 242, 254, 0.18), inset 0 0 1px rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modal-enter 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-enter {
+  from { transform: scale(0.92) translateY(15px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-main);
+}
+.modal-header-title svg {
+  color: var(--accent-cyan);
+  filter: drop-shadow(0 0 4px var(--accent-glow));
+}
+.modal-header-title h3 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  transition: all 0.2s;
+}
+.modal-close-btn:hover {
+  color: var(--error);
+  text-shadow: 0 0 8px var(--error);
+}
+
+.modal-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Sidebar Tab buttons */
+.modal-sidebar {
+  width: 170px;
+  background: rgba(0, 0, 0, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.modal-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-main);
+}
+
+.modal-tab-btn.active {
+  background: rgba(0, 242, 254, 0.08);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 242, 254, 0.15);
+  text-shadow: 0 0 4px var(--accent-glow);
+}
+
+/* Tab panes contents */
+.modal-content-pane {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.settings-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-section h4 {
+  font-size: 12px;
+  color: var(--accent-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 6px;
+  font-weight: 600;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.setting-label {
+  font-size: 13px;
+  color: var(--text-main);
+}
+
+.setting-value {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Updates status cards */
+.update-status-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.version-info-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.version-info-row .label {
+  font-size: 12px;
+  color: var(--text-dark);
+  margin-right: 6px;
+}
+
+.version-info-row .value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.update-status-message {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.release-notes-container {
+  margin-top: 12px;
+}
+
+.release-notes-text {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  max-height: 140px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.update-download-progress-box {
+  background: rgba(0, 242, 254, 0.02);
+  border: 1px solid rgba(0, 242, 254, 0.08);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+/* Badge highlights */
+.update-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  margin-left: 6px;
+  box-shadow: 0 0 6px var(--success);
+  position: relative;
+  top: -2px;
+}
+
+.update-badge-small {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--success);
+  border-radius: 50%;
+  box-shadow: 0 0 4px var(--success);
+}

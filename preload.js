@@ -23,5 +23,15 @@ contextBridge.exposeInMainWorld('api', {
     };
   },
   readFileContent: (path) => ipcRenderer.invoke('read-file-content', path),
-  openPath: (path) => ipcRenderer.invoke('open-path', path)
+  openPath: (path) => ipcRenderer.invoke('open-path', path),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: (url) => ipcRenderer.invoke('download-update', url),
+  installUpdate: (filePath) => ipcRenderer.invoke('install-update', filePath),
+  onDownloadProgress: (callback) => {
+    const listener = (event, data) => callback(data);
+    ipcRenderer.on('download-progress', listener);
+    return () => {
+      ipcRenderer.removeListener('download-progress', listener);
+    };
+  }
 });
