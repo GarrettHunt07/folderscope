@@ -1,0 +1,15 @@
+{
+  "name": "folderscope",
+  "version": "1.0.0",
+  "description": "FolderScope - A premium Windows desktop app to recursively scan, list, and analyze folders on your hard drive.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^31.0.1"
+  }
+}

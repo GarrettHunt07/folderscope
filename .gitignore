@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.system_generated/
+*.log
+.DS_Store
+package-lock.json
