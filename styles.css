@@ -243,6 +243,13 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 8px var(--accent-glow);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-avatar:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 12px var(--accent-cyan);
 }
 
 /* General Layout Containers */
