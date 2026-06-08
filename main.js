@@ -473,4 +473,9 @@ ipcMain.handle('install-update', async (event, filePath) => {
   }
 });
 
+// IPC handler to get current application version
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
 

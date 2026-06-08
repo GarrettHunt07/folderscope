@@ -1,6 +1,6 @@
 {
   "name": "folderscope",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "FolderScope - A premium Windows desktop app to recursively scan, list, and print folders on your hard drive.",
   "main": "main.js",
   "scripts": {

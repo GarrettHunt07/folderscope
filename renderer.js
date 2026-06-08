@@ -1855,7 +1855,15 @@ async function downloadAndInstallUpdate() {
 
 // --- User Profile & Welcome Wizard Controller ---
 
-function initializeLocalProfile() {
+async function initializeLocalProfile() {
+  // Query and set current version text dynamically on start
+  try {
+    const version = await window.api.getAppVersion();
+    currentVersionText.textContent = `v${version}`;
+  } catch (e) {
+    console.error('Failed to get app version:', e);
+  }
+
   const profileRaw = localStorage.getItem('folderscope_profile');
   if (profileRaw) {
     try {

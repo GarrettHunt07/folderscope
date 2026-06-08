@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   readFileContent: (path) => ipcRenderer.invoke('read-file-content', path),
   openPath: (path) => ipcRenderer.invoke('open-path', path),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: (url) => ipcRenderer.invoke('download-update', url),
   installUpdate: (filePath) => ipcRenderer.invoke('install-update', filePath),
